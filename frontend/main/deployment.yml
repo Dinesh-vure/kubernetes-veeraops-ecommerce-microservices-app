@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: main-frontend-deployment
+  namespace: microservices
   labels:
     app: main-frontend
 spec:
@@ -15,15 +16,24 @@ spec:
         app: main-frontend
     spec:
       containers:
-      - name: main-frontend
-        image: 913826031307.dkr.ecr.us-east-1.amazonaws.com/shopping-site-main:538c109e5924f8a1609518b0e19ba78339253c69
-        ports:
-        - containerPort: 80
+        - name: main-frontend
+          image: 913826031307.dkr.ecr.us-east-1.amazonaws.com/shopping-site-main:f333cf635ba4f46da5a6e9cef4095acc39f31ec5
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: main-service
+  namespace: microservices
   labels:
     app: main-frontend
 spec:
