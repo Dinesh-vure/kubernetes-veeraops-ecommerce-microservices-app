@@ -12,4 +12,4 @@ data:
   MAIL_PORT: "587"
   MAIL_USERNAME: "veeraopstechnologies@gmail.com"
   MAIL_USE_TLS: "true"
-  MAIL_USE_SSL: "false""
+  MAIL_USE_SSL: "false"
