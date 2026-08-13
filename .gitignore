@@ -1,0 +1,4 @@
+EKS-Terraform/.terraform/
+EKS-Terraform/terraform.tfstate
+EKS-Terraform/terraform.tfstate.*
+EKS-Terraform/*.tfvars
