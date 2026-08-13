@@ -1,6 +1,5 @@
 name: CI/CD for Shopping Site (Frontend + Backend)
 
-
 on:
   workflow_dispatch:
 
@@ -11,7 +10,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
-  
+
   FRONTEND_SERVICES: "main appliances auto beauty books computers earphones electronics fashion food furniture googlegrocery googlemusic googlepay home mobiles sports toys two-wheelers"
   BACKEND_SERVICE: "backend"
 
@@ -23,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       # -------------------------
       # Checkout
       # -------------------------
@@ -53,6 +53,7 @@ jobs:
       - name: 🛠 Build and Push Docker Images
         run: |
           set -e
+
           IMAGE_TAG="${GITHUB_SHA}"
 
           # -------- Frontend --------
@@ -68,13 +69,15 @@ jobs:
 
             echo "🚀 Building $service"
 
-            aws ecr describe-repositories --repository-names $REPO_NAME >/dev/null 2>&1 || \
-              aws ecr create-repository \
-                --repository-name $REPO_NAME \
-                --image-scanning-configuration scanOnPush=true
+            aws ecr describe-repositories \
+              --repository-names "$REPO_NAME" \
+              >/dev/null 2>&1 || \
+            aws ecr create-repository \
+              --repository-name "$REPO_NAME" \
+              --image-scanning-configuration scanOnPush=true
 
-            docker build -t $IMAGE_URI $FOLDER
-            docker push $IMAGE_URI
+            docker build -t "$IMAGE_URI" "$FOLDER"
+            docker push "$IMAGE_URI"
 
             sed -i "s|image:.*|image: $IMAGE_URI|g" "$FOLDER/deployment.yml"
           done
@@ -86,13 +89,15 @@ jobs:
 
           echo "🚀 Building backend"
 
-          aws ecr describe-repositories --repository-names $REPO_NAME >/dev/null 2>&1 || \
-            aws ecr create-repository \
-              --repository-name $REPO_NAME \
-              --image-scanning-configuration scanOnPush=true
+          aws ecr describe-repositories \
+            --repository-names "$REPO_NAME" \
+            >/dev/null 2>&1 || \
+          aws ecr create-repository \
+            --repository-name "$REPO_NAME" \
+            --image-scanning-configuration scanOnPush=true
 
-          docker build -t $IMAGE_URI $FOLDER
-          docker push $IMAGE_URI
+          docker build -t "$IMAGE_URI" "$FOLDER"
+          docker push "$IMAGE_URI"
 
           sed -i "s|image:.*|image: $IMAGE_URI|g" "$FOLDER/backend-deployment.yml"
 
@@ -105,10 +110,53 @@ jobs:
           git config --global user.email "actions@github.com"
 
           git add frontend/**/deployment.yml backend/backend-deployment.yml
+
           git commit -m "🔄 Update image tags after build [skip ci]" || echo "No changes"
+
           git push origin main || echo "Nothing to push"
 
-      
+      # -------------------------
+      # Deploy to EKS
+      # -------------------------
+      - name: 🚀 Deploy to EKS
+        run: |
+          set -e
+
+          echo "🔧 Connecting to EKS cluster..."
+
+          aws eks update-kubeconfig \
+            --name naresh \
+            --region "$AWS_REGION"
+
+          echo "✅ Connected to EKS"
+
+          kubectl cluster-info
+
+          echo "🚀 Deploying frontend services..."
+
+          for file in frontend/*/deployment.yml; do
+            if [ -f "$file" ]; then
+              echo "Applying $file"
+              kubectl apply -f "$file"
+            fi
+          done
+
+          echo "🚀 Deploying backend..."
+
+          if [ -f "backend/backend-deployment.yml" ]; then
+            kubectl apply -f backend/backend-deployment.yml
+          fi
+
+          echo "⏳ Checking deployments..."
+
+          kubectl get deployments -A
+
+          echo "📦 Checking pods..."
+
+          kubectl get pods -A
+
+          echo "🎉 EKS deployment completed successfully!"
+
       # -------------------------
       # Prevent CI loop
       # -------------------------
