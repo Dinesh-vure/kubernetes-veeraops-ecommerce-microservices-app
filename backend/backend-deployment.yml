@@ -1,8 +1,8 @@
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend-deployment
+  namespace: microservices
   labels:
     app: backend
 spec:
@@ -17,18 +17,26 @@ spec:
     spec:
       containers:
         - name: backend-container
-          image: 913826031307.dkr.ecr.us-east-1.amazonaws.com/shopping-site-backend:33d458a3100598f64c0b497fe9e1bb25420b103d
+          image: 913826031307.dkr.ecr.us-east-1.amazonaws.com/shopping-site-backend:8ef296a8dfff68b9ed0c57bf31eca39750984377
           ports:
             - containerPort: 5000
           envFrom:
             - configMapRef:
                 name: backend-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: backend-service
+  namespace: microservices
 spec:
   selector:
     app: backend
